@@ -9,3 +9,7 @@ edition = "2021"
 anyhow = "1.0.82"
 redis = "0.25.3"
 tokio = { version = "1.37.0", features = ["full"] }
+
+[dev-dependencies]
+testcontainers = "0.16.7"
+testcontainers-modules = { version = "0.4.2", features = ["blocking", "redis"] }
