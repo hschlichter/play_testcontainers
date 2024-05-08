@@ -7,9 +7,15 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.82"
-redis = "0.25.3"
 tokio = { version = "1.37.0", features = ["full"] }
+redis = "0.25.3"
+xxhash-rust = { version = "0.8", features = ["xxh3", "const_xxh3"] }
+base64 = "0.21"
+aws-config = "1.1.8"
+aws-sdk-s3 = { version = "1.20.0", features = ["behavior-version-latest"] }
 
 [dev-dependencies]
+rand = "0.8.5"
+tempfile = "3.10.1"
 testcontainers = "0.16.7"
-testcontainers-modules = { version = "0.4.2", features = ["blocking", "redis"] }
+testcontainers-modules = { version = "0.4.2", features = ["blocking", "redis", "minio"] }

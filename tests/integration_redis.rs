@@ -17,7 +17,6 @@ fn test_redis() {
     assert!(play.put(key, val).is_ok());
 }
 
-
 #[tokio::test]
 async fn test_redis_async() {
     use testcontainers::runners::AsyncRunner;

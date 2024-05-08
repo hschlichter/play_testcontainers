@@ -10,9 +10,7 @@ impl PlayRedis {
         let client = redis::Client::open(url).unwrap();
         let conn = client.get_connection().unwrap();
 
-        PlayRedis {
-            conn
-        }
+        PlayRedis { conn }
     }
 
     pub fn get(mut self, key: String) -> Result<String> {
