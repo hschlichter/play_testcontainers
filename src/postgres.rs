@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS targets (
     pub async fn insert(&self, name: &str, content_hash: u128) -> Result<uuid::Uuid> {
         if let Some(pool) = &self.pool {
             let content_hash_bytes = content_hash.to_be_bytes();
-            let id: (uuid::Uuid,) = sqlx::query_as(
+            let id = sqlx::query_scalar(
                 "INSERT INTO targets (name, content_hash) VALUES ($1, $2) RETURNING id;",
             )
             .bind(name)
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS targets (
             .fetch_one(pool)
             .await?;
 
-            Ok(id.0)
+            Ok(id)
         } else {
             Err(anyhow!("Error during insertion"))
         }
