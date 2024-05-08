@@ -7,7 +7,7 @@ use aws_sdk_s3::{
     Client, Config,
 };
 use base64::{engine::general_purpose, Engine as _};
-use std::{path::Path};
+use std::path::Path;
 use tokio::{
     fs::File,
     fs::OpenOptions,

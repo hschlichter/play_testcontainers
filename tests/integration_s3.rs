@@ -1,9 +1,9 @@
 use std::io::Write;
 
+use base64::{engine::general_purpose, Engine as _};
 use play_testcontainers::PlayS3;
 use rand::{distributions::Alphanumeric, Rng};
 use tempfile::NamedTempFile;
-use base64::{engine::general_purpose, Engine as _};
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::minio;
 
@@ -54,5 +54,8 @@ async fn test_s3() {
     let hash_of_get_file = PlayS3::hash_file(temp_file_get.path())
         .await
         .expect("Failed to hash file");
-    assert_eq!(hash, general_purpose::URL_SAFE_NO_PAD.encode(hash_of_get_file.to_be_bytes()))
+    assert_eq!(
+        hash,
+        general_purpose::URL_SAFE_NO_PAD.encode(hash_of_get_file.to_be_bytes())
+    )
 }
