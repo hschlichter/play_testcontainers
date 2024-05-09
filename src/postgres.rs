@@ -1,6 +1,6 @@
 use byteorder::{BigEndian, ByteOrder};
 use sqlx::{postgres::PgPoolOptions, FromRow, PgPool};
-use std::{fmt::Display, error::Error};
+use std::{error::Error, fmt::Display};
 
 #[derive(Debug, FromRow)]
 pub struct Target {
@@ -37,7 +37,9 @@ impl Display for PlayPostgresError {
         match self {
             PlayPostgresError::NoPool => write!(f, "No connection pool available"),
             PlayPostgresError::ConnectionFailed => write!(f, "Connection to postgres failed"),
-            PlayPostgresError::UuidExtensionCreateFailed => write!(f, "Connection to postgres failed"),
+            PlayPostgresError::UuidExtensionCreateFailed => {
+                write!(f, "Connection to postgres failed")
+            }
             PlayPostgresError::CreateTablesFailed => write!(f, "Failed to create tables"),
             PlayPostgresError::InsertFailed => write!(f, "Failed to insert"),
             PlayPostgresError::UpdateFailed => write!(f, "Failed to update"),
@@ -49,14 +51,9 @@ impl Display for PlayPostgresError {
 
 impl Error for PlayPostgresError {}
 
+#[derive(Default)]
 pub struct PlayPostgres {
     pool: Option<PgPool>,
-}
-
-impl Default for PlayPostgres {
-    fn default() -> Self {
-        PlayPostgres { pool: None }
-    }
 }
 
 impl PlayPostgres {
@@ -72,10 +69,7 @@ impl PlayPostgres {
     }
 
     fn pool(&self) -> Result<&PgPool, PlayPostgresError> {
-        Ok(self
-            .pool
-            .as_ref()
-            .ok_or_else(|| PlayPostgresError::NoPool)?)
+        self.pool.as_ref().ok_or(PlayPostgresError::NoPool)
     }
 
     pub async fn create_tables(&self) -> Result<(), PlayPostgresError> {
@@ -85,13 +79,12 @@ impl PlayPostgres {
             .map_err(|_| PlayPostgresError::UuidExtensionCreateFailed)?;
 
         sqlx::query(
-            r#"
-CREATE TABLE IF NOT EXISTS targets (
-id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-name VARCHAR(255) NOT NULL,
-content_hash BYTEA
-);
-            "#,
+            "
+            CREATE TABLE IF NOT EXISTS targets (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            name VARCHAR(255) NOT NULL,
+            content_hash BYTEA);
+        ",
         )
         .execute(self.pool()?)
         .await
