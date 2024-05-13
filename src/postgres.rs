@@ -1,22 +1,34 @@
 use byteorder::{BigEndian, ByteOrder};
-use sqlx::{postgres::PgPoolOptions, FromRow, PgPool};
+use sqlx::{
+    postgres::{PgPoolOptions, PgRow},
+    FromRow, PgPool, Row,
+};
 use std::{error::Error, fmt::Display};
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 pub struct Target {
     pub id: uuid::Uuid,
     pub name: String,
-    pub content_hash: Vec<u8>,
+    pub hash: u128,
 }
 
-impl Display for Target {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let content_hash = BigEndian::read_u128(&self.content_hash);
-        write!(
-            f,
-            "id: {}, name: {}, content_hash: {}",
-            self.id, self.name, content_hash
-        )
+impl FromRow<'_, PgRow> for Target {
+    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            name: row.try_get("name")?,
+            hash: {
+                let data: Vec<u8> = row.try_get("hash")?;
+                if data.len() == 16 {
+                    Ok(BigEndian::read_u128(&data))
+                } else {
+                    Err(sqlx::Error::ColumnDecode {
+                        index: "hash".to_string(),
+                        source: Box::new(PlayPostgresError::InvalidHash),
+                    })
+                }
+            }?,
+        })
     }
 }
 
@@ -30,6 +42,7 @@ pub enum PlayPostgresError {
     UpdateFailed,
     GetFailed,
     ListFailed,
+    InvalidHash,
 }
 
 impl Display for PlayPostgresError {
@@ -45,6 +58,7 @@ impl Display for PlayPostgresError {
             PlayPostgresError::UpdateFailed => write!(f, "Failed to update"),
             PlayPostgresError::GetFailed => write!(f, "Failed to get"),
             PlayPostgresError::ListFailed => write!(f, "Failed to list"),
+            PlayPostgresError::InvalidHash => todo!(),
         }
     }
 }
@@ -83,7 +97,7 @@ impl PlayPostgres {
             CREATE TABLE IF NOT EXISTS targets (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             name VARCHAR(255) NOT NULL,
-            content_hash BYTEA);
+            hash BYTEA);
         ",
         )
         .execute(self.pool()?)
@@ -93,20 +107,14 @@ impl PlayPostgres {
         Ok(())
     }
 
-    pub async fn insert(
-        &self,
-        name: &str,
-        content_hash: u128,
-    ) -> Result<uuid::Uuid, PlayPostgresError> {
-        let content_hash_bytes = content_hash.to_be_bytes();
-        let id = sqlx::query_scalar(
-            "INSERT INTO targets (name, content_hash) VALUES ($1, $2) RETURNING id;",
-        )
-        .bind(name)
-        .bind(content_hash_bytes)
-        .fetch_one(self.pool()?)
-        .await
-        .map_err(|_| PlayPostgresError::InsertFailed)?;
+    pub async fn insert(&self, name: &str, hash: u128) -> Result<uuid::Uuid, PlayPostgresError> {
+        let id =
+            sqlx::query_scalar("INSERT INTO targets (name, hash) VALUES ($1, $2) RETURNING id;")
+                .bind(name)
+                .bind(hash.to_be_bytes())
+                .fetch_one(self.pool()?)
+                .await
+                .map_err(|_| PlayPostgresError::InsertFailed)?;
 
         Ok(id)
     }
@@ -115,11 +123,11 @@ impl PlayPostgres {
         &self,
         id: &uuid::Uuid,
         name: &str,
-        content_hash: u128,
+        hash: u128,
     ) -> Result<(), PlayPostgresError> {
-        sqlx::query("UPDATE targets SET name = $1, content_hash = $2 WHERE id = $3;")
+        sqlx::query("UPDATE targets SET name = $1, hash = $2 WHERE id = $3;")
             .bind(name)
-            .bind(content_hash.to_be_bytes())
+            .bind(hash.to_be_bytes())
             .bind(id)
             .execute(self.pool()?)
             .await

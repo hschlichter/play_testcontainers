@@ -1,4 +1,3 @@
-use byteorder::{BigEndian, ByteOrder};
 use play_testcontainers::PlayPostgres;
 use testcontainers::{core::WaitFor, runners::AsyncRunner, GenericImage};
 
@@ -33,7 +32,7 @@ async fn test_postgres() {
 
     if let Ok(recs) = play.list().await {
         for r in &recs {
-            println!("{}", r);
+            println!("{:?}", r);
         }
     }
 
@@ -43,13 +42,13 @@ async fn test_postgres() {
     assert_eq!(rec0.name, "hello");
     assert_eq!(rec1.name, "world");
 
-    play.update(&id0, "fubar", BigEndian::read_u128(&rec0.content_hash))
+    play.update(&id0, "fubar", rec0.hash)
         .await
         .expect("Failed to update");
 
     if let Ok(recs) = play.list().await {
         for r in recs {
-            println!("{}", r);
+            println!("{:?}", r);
         }
     }
 }
