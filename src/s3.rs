@@ -21,10 +21,6 @@ pub struct PlayS3 {}
 
 impl PlayS3 {
     pub fn create_client(access_key: String, secret_key: String, endpoint_url: String) -> Client {
-        // let access_key = env::var("AWS_ACCESS_KEY").expect("AWS_ACCESS_KEY_ID must be set");
-        // let secret_key = env::var("AWS_SECRET_ACCESS_KEY").expect("AWS_SECRET_ACCESS_KEY must be set");
-        // let endpoint_url = env::var("AWS_ENDPOINT_URL").expect("AWS_ENDPOINT_URL must be set");
-
         let config = Config::builder()
             .credentials_provider(Credentials::new(
                 access_key, secret_key, None, None, "custom",
